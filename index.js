@@ -3,7 +3,7 @@
  * @brief jspreadsheet component for mofron
  * @license MIT
  */
-const Highcharts = require('highcharts'); 
+//const Highcharts = require('highcharts'); 
 
 module.exports = class extends mofron.class.Component {
     /**
@@ -20,8 +20,12 @@ module.exports = class extends mofron.class.Component {
             this.shortForm("type");
 	    
             this.confmng().add("core", { type: "object" });
-            this.confmng().add("type", { type:"string", init:"line", select:["line", "bar", "area", "pie"] });
-            this.confmng().add("option", { type: "object" });
+            this.confmng().add("type", { type:"string", init:"line", select:["line", "column", "area", "pie"] });
+            this.confmng().add("legend",{
+                type: "object",
+                init: {layout: 'vertical', align: 'right', verticalAlign: 'middle'}
+            });
+            this.confmng().add("option", { type: "object", init: {} });
             this.confmng().add("title",  { type: "string" });
             this.confmng().add("series", { type: "object", list: true });
             this.confmng().add("yAxis", { type: "object" });
@@ -77,6 +81,23 @@ module.exports = class extends mofron.class.Component {
         }
     }
     
+    legend (prm) {
+        try {
+            if (undefined !== prm) {
+                let leg = this.legend();
+                for (let pidx in prm) {
+                    leg[pidx] = prm[pidx];
+                }
+                this.confmng("legend", leg);
+                return;
+            }
+            return this.confmng("legend", prm);
+        } catch (e) {
+            console.error(e.stack);
+            throw e;
+        }
+    }
+    
     series (prm) {
         try {
 	    if (null === prm) {
@@ -98,7 +119,7 @@ module.exports = class extends mofron.class.Component {
             throw e;
 	}
     }
-    
+
     afterRender () {
         try {
             super.afterRender();
@@ -111,6 +132,21 @@ module.exports = class extends mofron.class.Component {
     
     draw (prm) {
         try {
+	    let x_axis = { categories: [] };
+            if (("pie" !== this.type()) && (0 !== this.series().length)) {
+	        if ("string" === typeof this.series()[0].data[0][0]) {
+                    /* sort x-axis */
+                    let series = JSON.parse(JSON.stringify(this.series()));
+                    //for (let sidx in series) {
+                        for (let didx in series[0].data) {
+                            x_axis.categories.push(series[0].data[didx][0]);
+                            series[0].data[didx].shift();
+                        }
+                    //}
+                }
+            }
+            
+            
 	    let opt = {
                 chart: {
                     type: this.type()
@@ -119,13 +155,42 @@ module.exports = class extends mofron.class.Component {
                     text: this.title()
                 },
 		yAxis: this.yAxis(),
-		legend: {
-                    layout: 'vertical',
-                    align: 'right',
-                    verticalAlign: 'middle'
+		legend: this.legend(),
+                series: this.series(),
+                exporting: {
+                    chartOptions: { // specific options for the exported image
+                        plotOptions: {
+                            series: {
+                                //dataLabels: {
+                                //    enabled: true
+                                //}
+                            }
+                        }
+                    },
+                    fallbackToExportServer: false
                 },
-                series: this.series()
+
 	    };
+            
+	    let add_option = this.option();
+	    if (null !== add_option) {
+                for (let oidx in add_option) {
+                    opt[oidx] = add_option[oidx];
+		}
+	    }
+
+            //if (null !== this.title()) {
+            //    opt.title.text = this.title();
+	    //}
+            
+            if (null !== this.height()) {
+                opt.height = this.height();
+	    }
+
+            if (0 !== x_axis.categories.length) {
+                opt.xAxis = x_axis;
+	    }
+
             this.confmng(
                 "core",
                 Highcharts.chart(this.childDom().getRawDom(),opt)
