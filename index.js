@@ -19,8 +19,9 @@ module.exports = class extends mofron.class.Component {
             this.modname("Highcharts");
             this.shortForm("type");
 	    
-            this.confmng().add("core", { type: "object" });
-            this.confmng().add("type", { type:"string", init:"line", select:["line", "column", "area", "pie"] });
+            this.confmng().add("core",    { type: "object" });
+            this.confmng().add("type",    { type:"string", init:"line", select:["line", "column", "area", "pie"] });
+	    this.confmng().add("libType", { type:"string", init:"chart", select:["chart","stock","maps","gantt"]  });
             this.confmng().add("legend",{
                 type: "object",
                 init: {layout: 'vertical', align: 'right', verticalAlign: 'middle'}
@@ -29,6 +30,7 @@ module.exports = class extends mofron.class.Component {
             this.confmng().add("title",  { type: "string" });
             this.confmng().add("series", { type: "object", list: true });
             this.confmng().add("yAxis", { type: "object" });
+            this.confmng().add("xAxis", { type: "object" });
 
             /* init config */
 	    if (0 < arguments.length) {
@@ -61,6 +63,15 @@ module.exports = class extends mofron.class.Component {
 	    console.error(e.stack);
             throw e;
 	}
+    }
+
+    libType (prm) {
+        try {
+            return this.confmng("libType", prm);
+        } catch (e) {
+            console.error(e.stack);
+            throw e;
+        }
     }
     
     option (prm) {
@@ -118,6 +129,15 @@ module.exports = class extends mofron.class.Component {
             console.error(e.stack);
             throw e;
 	}
+    }
+
+    xAxis (prm) {
+        try {
+            return this.confmng("xAxis", prm);
+        } catch (e) {
+            console.error(e.stack);
+            throw e;
+        }
     }
 
     afterRender () {
@@ -189,12 +209,23 @@ module.exports = class extends mofron.class.Component {
 
             if (0 !== x_axis.categories.length) {
                 opt.xAxis = x_axis;
-	    }
+	    } else if (null !== this.xAxis()) {
+                opt.xAxis = this.xAxis();
+            }
+            
+	    // "basic","stock","maps","gantt"
+            let core = null;
+            if ("chart" === this.libType()) {
+                core = Highcharts.chart(this.childDom().getRawDom(),opt)
+	    } else if ("stock" === this.libType()) {
+                core = Highcharts.stockChart(this.childDom().getRawDom(),opt)
+            } else if ("maps" === this.libType()) {
+                core = Highcharts.mapChart(this.childDom().getRawDom(),opt)
+            } else if ("gantt" === this.libType()) {
+                core = Highcharts.ganttChart(this.childDom().getRawDom(),opt)
+            } 
 
-            this.confmng(
-                "core",
-                Highcharts.chart(this.childDom().getRawDom(),opt)
-            );
+            this.confmng("core",core);
 	} catch (e) {
             console.error(e.stack);
             throw e;
