@@ -189,7 +189,9 @@ module.exports = class extends mofron.class.Component {
                     },
                     fallbackToExportServer: false
                 },
-
+                credits: {
+                     enabled: false
+                }
 	    };
             
 	    let add_option = this.option();
